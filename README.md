@@ -1,7 +1,8 @@
-Advanced Android Sample App
+Go Ubiquitous
 ===================================
+This project is part of Udacity Android Developer Nanodegree.
 
-Synchronizes weather information from OpenWeatherMap on Android Phones and Tablets. Used in the Udacity Advanced Android course.
+Synchronizes weather information from OpenWeatherMap on Android Phones and Tablets. The start code is from https://github.com/udacity/Advanced_Android_Development/tree/7.05_Pretty_Wallpaper_Time
 
 Pre-requisites
 --------------
