@@ -7,4 +7,6 @@
     <dimen name="digital_y_offset">70dp</dimen>
     <dimen name="digital_date_size_round">20dp</dimen>
     <dimen name="digital_date_size">25dp</dimen>
+    <dimen name="digital_temp_text_size_round">30dp</dimen>
+    <dimen name="digital_temp_text_size">35dp</dimen>
 </resources>
