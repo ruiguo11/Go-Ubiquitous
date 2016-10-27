@@ -1,3 +1,6 @@
+![alt tag](https://github.com/ruiguo11/Go-Ubiquitous/blob/master/wearable/src/main/res/drawable-nodpi/digital.png)
+
+![alt tag](https://github.com/ruiguo11/Go-Ubiquitous/blob/master/wearable/src/main/res/drawable-nodpi/digital_circular.png)
 Go Ubiquitous
 ===================================
 This project is part of Udacity Android Developer Nanodegree.
