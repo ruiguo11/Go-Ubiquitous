@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -38,12 +39,14 @@ import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
@@ -52,6 +55,7 @@ import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.Wearable;
 
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -69,8 +73,10 @@ public class MyWatchFace extends CanvasWatchFaceService {
     private static final String LOG_TAG="MyWatchFace";
     private static final String TEMP_HIGH = "TEMP_HIGH";
     private static final String TEMP_LOW="TEMP_LOW";
+    private static final String WEATHER_ICON="WEATHER_ICON";
     private String high;
     private String low;
+    private Bitmap bitmap;
 
 
 
@@ -148,9 +154,12 @@ public class MyWatchFace extends CanvasWatchFaceService {
             setWatchFaceStyle(new WatchFaceStyle.Builder(MyWatchFace.this)
                     .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
+                    .setHotwordIndicatorGravity(Gravity.CENTER)
                     .setShowSystemUiTime(false)
                     .setAcceptsTapEvents(true)
                     .build());
+
+
             Resources resources = MyWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
 
@@ -172,19 +181,21 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mTempLowPaint = createTextPaint(resources.getColor(R.color.digital_gray));
 
 
+
             mGoogleApiClient = new GoogleApiClient.Builder(MyWatchFace.this)
             .addConnectionCallbacks(this)
             .addOnConnectionFailedListener(this)
             .addApi(Wearable.API)
             .build();
             mGoogleApiClient.connect();
+
         }
 
         @Override
         public void onDestroy() {
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
             super.onDestroy();
-            mGoogleApiClient.disconnect();
+            //mGoogleApiClient.disconnect();
         }
 
         private Paint createTextPaint(int textColor) {
@@ -201,8 +212,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
             if (visible) {
                 registerReceiver();
-                mGoogleApiClient.connect();
-
                 // Update time zone in case it changed while we weren't visible.
                 mCalendar.setTimeZone(TimeZone.getDefault());
                 invalidate();
@@ -210,7 +219,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 unregisterReceiver();
                 if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
                     Wearable.DataApi.removeListener(mGoogleApiClient, this);
-                    mGoogleApiClient.disconnect();
+                    //mGoogleApiClient.disconnect();
                 }
             }
 
@@ -226,7 +235,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mRegisteredTimeZoneReceiver = true;
             IntentFilter filter = new IntentFilter(Intent.ACTION_TIMEZONE_CHANGED);
             MyWatchFace.this.registerReceiver(mTimeZoneReceiver, filter);
-            mGoogleApiClient.connect();
+           // mGoogleApiClient.connect();
         }
 
         private void unregisterReceiver() {
@@ -244,20 +253,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             // Load resources that have alternate values for round watches.
             Resources resources = MyWatchFace.this.getResources();
             boolean isRound = insets.isRound();
-            mXOffset = resources.getDimension(isRound
-                    ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-            float textSize = resources.getDimension(isRound
-                    ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
-            float dateTextSize=resources.getDimension(isRound
-                    ? R.dimen.digital_date_size_round : R.dimen.digital_date_size);
 
-            float tempTextSize=resources.getDimension(isRound
-                    ? R.dimen.digital_temp_text_size_round : R.dimen.digital_temp_text_size);
-
-            mTextPaint.setTextSize(textSize);
-            mDatePaint.setTextSize(dateTextSize);
-            mTempHighPaint.setTextSize(tempTextSize);
-            mTempLowPaint.setTextSize(tempTextSize);
         }
 
         @Override
@@ -329,6 +325,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             boolean is24Hour = DateFormat.is24HourFormat(MyWatchFace.this);
             String text;
 
+
             if(is24Hour){
                 text =
                         String.format("%d:%02d", mCalendar.get(Calendar.HOUR_OF_DAY),
@@ -341,6 +338,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
             }
 
 
+            mYOffset = bounds.height()/4;
+            mTextPaint.setTextSize(bounds.height()/6);
             canvas.drawText(text, bounds.centerX()-mTextPaint.measureText(text)/2, mYOffset, mTextPaint);
 
 
@@ -350,14 +349,23 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
 
             String datetext = mAmbient ? "":date;
+            mDatePaint.setTextSize(bounds.height()/10);
             canvas.drawText(datetext, bounds.centerX()-mDatePaint.measureText(datetext)/2, mYOffset+50, mDatePaint);
             canvas.drawLine(bounds.centerX()-bounds.width()/6, mYOffset+90, bounds.centerX()+bounds.width()/6, mYOffset+90, mDatePaint);
 
-            if(high !=null && low!=null) {
-                canvas.drawText(high, bounds.centerX() - 50,  bounds.centerY()+100, mTempHighPaint);
-                canvas.drawText(low, bounds.centerX() - mDatePaint.measureText(low) / 2 + mDatePaint.measureText(high) + 30,bounds.centerY()+100, mTempLowPaint);
+            mTempHighPaint.setTextSize(bounds.height()/8);
+            mTempLowPaint.setTextSize(bounds.height()/8);
+
+            if(high !=null && low!=null ) {
+                canvas.drawText(high, bounds.centerX() - 30,  bounds.centerY()+100, mTempHighPaint);
+                canvas.drawText(low, bounds.centerX() +mTempHighPaint.measureText(high) ,bounds.centerY()+100, mTempLowPaint);
+
             }
-            //canvas.drawLine();
+            if(bitmap!=null){
+
+
+                canvas.drawBitmap(bitmap, bounds.width()/10, bounds.centerY()+30, mTempHighPaint);
+            }
         }
 
         /**
@@ -439,11 +447,27 @@ public class MyWatchFace extends CanvasWatchFaceService {
                     } else {
                         Log.d(LOG_TAG, "No low temp");
                     }
-                    //invalidate();
+                    if(dataMap.containsKey("WEATHER_ID")){
+                        int weatherid = dataMap.getInt("WEATHER_ID");
+
+                        bitmap= BitmapFactory.decodeResource(getResources(), WatchUtility.getArtResourceForWeatherCondition(weatherid ));
+bitmap = Bitmap.createScaledBitmap(bitmap, 90, 90, false);
+
+                        Log.d(LOG_TAG, "weather id"+dataMap.getInt("WEATHER_ID"));
+                        //Asset profileAsset = dataMap.getAsset(WEATHER_ICON);
+                        //Bitmap bitmap = loadBitmapFromAsset(profileAsset);
+
+                    }
+                    else{
+                        Log.d(LOG_TAG, "no icon");
+                    }
+
                 }
+                invalidate();
             }
 
         }
+
 
     }
 }

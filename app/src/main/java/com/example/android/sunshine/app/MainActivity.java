@@ -20,6 +20,8 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.util.Pair;
@@ -39,9 +41,16 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
 
-public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback
+public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback/*,
+        DataApi.DataListener,
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener
+        */
 
 {
 
@@ -49,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
     private static final String DETAILFRAGMENT_TAG = "DFTAG";
     private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
     public static final String SENT_TOKEN_TO_SERVER = "sentTokenToServer";
+    private GoogleApiClient mGoogleApiClient;
 
     private boolean mTwoPane;
     private String mLocation;
@@ -64,6 +74,13 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         Toolbar toolbar = (Toolbar)findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
+/*
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+                */
 
         if (findViewById(R.id.weather_detail_container) != null) {
             // The detail container view will be present only in the large-screen layouts
@@ -122,11 +139,16 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
     @Override
     protected void onPause() {
         super.onPause();
+        //Wearable.DataApi.removeListener(mGoogleApiClient, this);
+        //mGoogleApiClient.disconnect();
 
     }
     @Override
     protected void onStop(){
         super.onStop();
+       // Wearable.DataApi.removeListener(mGoogleApiClient, this);
+       // mGoogleApiClient.disconnect();
+
 
     }
 
@@ -156,6 +178,7 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
     @Override
     protected void onResume() {
         super.onResume();
+        //mGoogleApiClient.connect();
         String location = Utility.getPreferredLocation( this );
         // update the location in our second pane using the fragment manager
             if (location != null && !location.equals(mLocation)) {
@@ -219,5 +242,39 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         return true;
     }
 
+/*
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        Wearable.DataApi.addListener(mGoogleApiClient, this);
+    }
 
+    @Override
+    public void onConnectionSuspended(int i) {
+        Log.d(LOG_TAG, "onConnectionSuspended");
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Log.d(LOG_TAG, "onConnectionFailed");
+    }
+
+    @Override
+    public void onDataChanged(DataEventBuffer dataEvents) {
+        Log.d(LOG_TAG, "onDataChanged");
+        for (DataEvent event : dataEvents) {
+            if (event.getType() == DataEvent.TYPE_CHANGED) {
+                // DataItem changed
+                DataItem item = event.getDataItem();
+                if (item.getUri().getPath().equals("/weather")) {
+                    DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+                    SunshineSyncAdapter.syncImmediately(this);
+
+                }
+            } else if (event.getType() == DataEvent.TYPE_DELETED) {
+                // DataItem deleted
+            }
+        }
+    }
+    */
 }

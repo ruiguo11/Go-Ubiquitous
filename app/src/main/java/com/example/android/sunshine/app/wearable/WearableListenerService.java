@@ -3,6 +3,7 @@ package com.example.android.sunshine.app.wearable;
 import android.net.Uri;
 import android.util.Log;
 
+import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.data.FreezableUtils;
@@ -20,14 +21,17 @@ import java.util.concurrent.TimeUnit;
 
 public class WearableListenerService extends com.google.android.gms.wearable.WearableListenerService {
     private static final String LOG_TAG= "WearableListenerService";
-    private static final String START_ACTIVITY_PATH = "/start-activity";
+    //private static final String START_ACTIVITY_PATH = "/weather";
     private static final String DATA_ITEM_RECEIVED_PATH = "/weather";
+    private SunshineSyncAdapter sSunshineSyncAdapter;
+
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
         if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
             Log.d(LOG_TAG, "onDataChanged: " + dataEvents);
         }
+        /*
         final List events = FreezableUtils
                 .freezeIterable(dataEvents);
 
@@ -42,22 +46,16 @@ public class WearableListenerService extends com.google.android.gms.wearable.Wea
             Log.e(LOG_TAG, "Failed to connect to GoogleApiClient.");
             return;
         }
-
-        // Loop through the events and send a message
-        // to the node that created the data item.
-
+*/
 
         for (DataEvent event : dataEvents) {
-            Uri uri = event.getDataItem().getUri();
+            if(event.getType()==DataEvent.TYPE_CHANGED){
+                String path = event.getDataItem().getUri().getPath();
+                if(path.equals(DATA_ITEM_RECEIVED_PATH ))
+                    SunshineSyncAdapter.syncImmediately(this);
 
-            // Get the node id from the host value of the URI
-            String nodeId = uri.getHost();
-            // Set the data of the message to be the bytes of the URI
-            byte[] payload = uri.toString().getBytes();
+            }
 
-            // Send the RPC
-            Wearable.MessageApi.sendMessage(googleApiClient, nodeId,
-                    DATA_ITEM_RECEIVED_PATH, payload);
         }
     }
 }

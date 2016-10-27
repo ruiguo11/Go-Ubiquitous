@@ -41,6 +41,8 @@ import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.PutDataMapRequest;
@@ -52,6 +54,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -79,9 +82,10 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
     private static final int WEATHER_NOTIFICATION_ID = 3004;
 
     private static final String WEATHER_PATH="/weather";
-    private static final String WEATER_ID="WEATHER_ID";
+    private static final String WEATHER_ID="WEATHER_ID";
     private static final String TEMP_HIGH="TEMP_HIGH";
     private static final String TEMP_LOW ="TEMP_LOW";
+    private static final String WEATHER_ICON="WEATHER_ICON";
 
 
 
@@ -439,26 +443,45 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
             double low = cursor.getDouble(INDEX_MIN_TEMP);
             PutDataMapRequest putDataMapReq = PutDataMapRequest.create(WEATHER_PATH);
 
+            putDataMapReq.getDataMap().putInt("timestamp", (int)System.currentTimeMillis());
             putDataMapReq.getDataMap().putString(TEMP_HIGH, Utility.formatTemperature(context, high));
             putDataMapReq.getDataMap().putString(TEMP_LOW, Utility.formatTemperature(context, low));
-            //putDataMapReq.getDataMap().putInt(TEMP_HIGH, (int)(Math.round(high)));
-            //putDataMapReq.getDataMap().putInt(TEMP_LOW, (int)(Math.round(low)));
-            //putDataMapReq.getDataMap().putDouble(TEMP_HIGH, high);
-            //putDataMapReq.getDataMap().putDouble(TEMP_LOW, low);
-            putDataMapReq.getDataMap().putInt(WEATER_ID, weatherId);
-            PutDataRequest putDataReq = putDataMapReq.asPutDataRequest().setUrgent();
-            //Log.d(LOG_TAG, "high="+Utility.formatTemperature(context, high)+", low="+Utility.formatTemperature(context, low));
+            putDataMapReq.getDataMap().putInt(WEATHER_ID, weatherId);
 
-            PendingResult<DataApi.DataItemResult> pendingResult =
-                    Wearable.DataApi.putDataItem(
-                            mGoogleApiClient, putDataReq);
+
+            Log.d(LOG_TAG, "WeatherID"+weatherId+"timestamp"+System.currentTimeMillis());
+            Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), Utility.getArtResourceForWeatherCondition(weatherId));
+            Asset asset = createAssetFromBitmap(bitmap);
+            putDataMapReq.getDataMap().putAsset(WEATHER_ICON, asset);
+
+            PutDataRequest putDataReq = putDataMapReq.asPutDataRequest().setUrgent();
+
+
+            Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq)
+                    .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                        @Override
+                        public void onResult(DataApi.DataItemResult dataItemResult) {
+                            if (dataItemResult.getStatus().isSuccess()) {
+                                Log.d(LOG_TAG, "Weather data successfully sent to device.");
+
+                            } else {
+                                Log.d(LOG_TAG, "Failed to send weather data to device.");
+                            }
+                        }
+                    });
 
             Log.d(LOG_TAG, "high="+Utility.formatTemperature(context, high)+", low="+Utility.formatTemperature(context, low));
 
-
+            cursor.close();
         }
-        cursor.close();
 
+
+    }
+
+    private static Asset createAssetFromBitmap(Bitmap bitmap) {
+        final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
+        return Asset.createFromBytes(byteStream.toByteArray());
     }
 
 
