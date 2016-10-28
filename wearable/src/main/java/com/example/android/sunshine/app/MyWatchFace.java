@@ -410,6 +410,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         @Override
         public void onConnectionSuspended(int i) {
             Log.d(LOG_TAG, "GoogleApi onConnectionSuspended");
+             mGoogleApiClient.connect();
 
         }
 
