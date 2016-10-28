@@ -140,7 +140,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter
                 .addApi(Wearable.API)
                 .build();
         mGoogleApiClient.connect();
-        updateWear();
+        //updateWear();
     }
 
     @Override
